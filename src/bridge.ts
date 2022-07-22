@@ -6,6 +6,10 @@ import * as uuidv4 from 'uuid/v4';
 
 import { IActivity, IBotData, IConversation, IConversationUpdateActivity, IMessageActivity } from './types';
 
+interface String {    
+    endsWith(searchString: string, endPosition?: number): boolean;
+};
+
 const expiresIn = 1800;
 const conversationsCleanupInterval = 10000;
 const conversations: { [key: string]: IConversation } = {};
@@ -185,6 +189,20 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         deleteStateForUser(req, res);
     });
 
+    router.post('/v3/directline/tokens/generate', (req, res) => {
+        console.log(('Called GET tokens generate'));
+        res.status(200).send({
+            token: "myfaketoken"
+        });
+    });
+
+    router.post('/directline/tokens/generate', (req, res) => {
+        console.log(('Called GET tokens generate'));
+        res.status(200).send({
+            token: "myfaketoken"
+        });
+    });
+
     return router;
 };
 
@@ -272,13 +290,13 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
 
 // CLIENT ENDPOINT HELPERS
 const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, conversationId: string): IMessageActivity => {
-    return { ...incomingActivity, channelId: 'emulator', serviceUrl, conversation: { id: conversationId }, id: uuidv4() };
+    return { ...incomingActivity, channelId: 'web', serviceUrl, conversation: { id: conversationId }, id: uuidv4() };
 };
 
 const createConversationUpdateActivity = (serviceUrl: string, conversationId: string): IConversationUpdateActivity => {
     const activity: IConversationUpdateActivity = {
         type: 'conversationUpdate',
-        channelId: 'emulator',
+        channelId: 'web',
         serviceUrl,
         conversation: { id: conversationId },
         id: uuidv4(),
