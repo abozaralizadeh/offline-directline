@@ -38,7 +38,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         res.status(200).end();
     });
     // Creates a conversation
-    router.post('/directline/conversations', function (req, res) {
+    router.post('/v3?/directline/conversations', function (req, res) {
         var conversationId = uuidv4().toString();
         conversations[conversationId] = {
             conversationId: conversationId,
@@ -62,7 +62,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     // Reconnect API
     router.get('/v3/directline/conversations/:conversationId', function (req, res) { console.warn('/v3/directline/conversations/:conversationId not implemented'); });
     // Gets activities from store (local history array for now)
-    router.get('/directline/conversations/:conversationId/activities', function (req, res) {
+    router.get('/v3?/directline/conversations/:conversationId/activities', function (req, res) {
         var watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
         var conversation = getConversation(req.params.conversationId, conversationInitRequired);
         if (conversation) {
@@ -87,7 +87,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         }
     });
     // Sends message to bot. Assumes message activities
-    router.post('/directline/conversations/:conversationId/activities', function (req, res) {
+    router.post('/v3?/directline/conversations/:conversationId/activities', function (req, res) {
         var incomingActivity = req.body;
         // Make copy of activity. Add required fields
         var activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
@@ -173,16 +173,10 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         console.log('Called DELETE deleteStateForUser');
         deleteStateForUser(req, res);
     });
-    router.post('/v3/directline/tokens/generate', function (req, res) {
+    router.post('/v3?/directline/tokens/generate', function (req, res) {
         console.log(('Called GET tokens generate'));
         res.status(200).send({
-            token: "myfaketoken"
-        });
-    });
-    router.post('/directline/tokens/generate', function (req, res) {
-        console.log(('Called GET tokens generate'));
-        res.status(200).send({
-            token: "myfaketoken"
+            token: "offlineDirectLineFaketoken"
         });
     });
     return router;
