@@ -34,11 +34,39 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         next();
     });
     // CLIENT ENDPOINT
+    router.options('/*', function (req, res) {
+        res.status(200).end();
+    });
     router.options('/directline', function (req, res) {
+        res.status(200).end();
+    });
+    router.options('/v3?/directline', function (req, res) {
         res.status(200).end();
     });
     // Creates a conversation
     router.post('/v3?/directline/conversations', function (req, res) {
+        var conversationId = uuidv4().toString();
+        conversations[conversationId] = {
+            conversationId: conversationId,
+            history: []
+        };
+        console.log('Created conversation with conversationId: ' + conversationId);
+        var activity = createConversationUpdateActivity(serviceUrl, conversationId);
+        fetch(botUrl, {
+            method: 'POST',
+            body: JSON.stringify(activity),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(function (response) {
+            res.status(response.status).send({
+                conversationId: conversationId,
+                expiresIn: expiresIn
+            });
+        });
+    });
+    // Creates a conversation
+    router.post('/v3?/directline//conversations', function (req, res) {
         var conversationId = uuidv4().toString();
         conversations[conversationId] = {
             conversationId: conversationId,
@@ -174,6 +202,12 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         deleteStateForUser(req, res);
     });
     router.post('/v3?/directline/tokens/generate', function (req, res) {
+        console.log(('Called GET tokens generate'));
+        res.status(200).send({
+            token: "offlineDirectLineFaketoken"
+        });
+    });
+    router.post('/v3?/directline/tokens/refresh', function (req, res) {
         console.log(('Called GET tokens generate'));
         res.status(200).send({
             token: "offlineDirectLineFaketoken"

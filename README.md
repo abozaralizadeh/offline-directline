@@ -10,7 +10,14 @@ See [Bot Framework API Reference](https://docs.microsoft.com/en-us/bot-framework
 
 NOTE: Not all routes (e.g. attachments) are fully implemented in this package. For now this connector functions as a message broker and state store. Further, this package currently facilitates a single conversation between a user and a bot.
 
+## Docker
 
+```sh
+docker pull abo0zar/offline_direct_line:latest
+```
+```sh
+docker run -d -p 3000:3000 -e ofdl_port=3000 -e offline_dl_bot="http://host.docker.internal:5019/api/messages" abo0zar/offline_direct_line:latest
+```
 ## Installation
 
 ### NPM

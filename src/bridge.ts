@@ -26,8 +26,17 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-ms-bot-agent');
         next();
     });
+
     // CLIENT ENDPOINT
+    router.options('/*', (req, res) => {
+        res.status(200).end();
+    });
+
     router.options('/directline', (req, res) => {
+        res.status(200).end();
+    });
+
+    router.options('/v3?/directline', (req, res) => {
         res.status(200).end();
     });
 
@@ -190,6 +199,13 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     });
 
     router.post('/v3?/directline/tokens/generate', (req, res) => {
+        console.log(('Called GET tokens generate'));
+        res.status(200).send({
+            token: "offlineDirectLineFaketoken"
+        });
+    });
+
+    router.post('/v3?/directline/tokens/refresh', (req, res) => {
         console.log(('Called GET tokens generate'));
         res.status(200).send({
             token: "offlineDirectLineFaketoken"
