@@ -45,34 +45,18 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     });
     // Creates a conversation
     router.post('/v3?/directline/conversations', function (req, res) {
-        var conversationId = uuidv4().toString();
-        conversations[conversationId] = {
-            conversationId: conversationId,
-            history: []
-        };
-        console.log('Created conversation with conversationId: ' + conversationId);
-        var activity = createConversationUpdateActivity(serviceUrl, conversationId);
-        fetch(botUrl, {
-            method: 'POST',
-            body: JSON.stringify(activity),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }).then(function (response) {
-            res.status(response.status).send({
-                conversationId: conversationId,
-                expiresIn: expiresIn
-            });
-        });
-    });
-    // Creates a conversation
-    router.post('/v3?/directline//conversations', function (req, res) {
-        var conversationId = uuidv4().toString();
-        conversations[conversationId] = {
-            conversationId: conversationId,
-            history: []
-        };
-        console.log('Created conversation with conversationId: ' + conversationId);
+        //const conversationId: string = uuidv4().toString();
+        //conversations[conversationId] = {
+        //    conversationId,
+        //    history: [],
+        //};
+        // abo
+        var conversationId = conversations[Object.keys(conversations)[0]].conversationId;
+        //for (let key in conversations) {
+        //    let value = conversations[key];
+        //    if (value.token == req.params.token)
+        //}
+        console.log('post /v3?/directline/conversations Created conversation with conversationId: ' + conversationId);
         var activity = createConversationUpdateActivity(serviceUrl, conversationId);
         fetch(botUrl, {
             method: 'POST',
@@ -88,11 +72,28 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         });
     });
     // Reconnect API
-    router.get('/v3/directline/conversations/:conversationId', function (req, res) { console.warn('/v3/directline/conversations/:conversationId not implemented'); });
+    router.get('/v3/directline/conversations/:conversationId', function (req, res) {
+        var conversationId = req.params.conversationId;
+        console.log('get /v3/directline/conversations/:conversationId  with conversationId: ' + conversationId);
+        var activity = createConversationUpdateActivity(serviceUrl, conversationId);
+        fetch(botUrl, {
+            method: 'POST',
+            body: JSON.stringify(activity),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(function (response) {
+            res.status(response.status).send({
+                conversationId: conversationId,
+                expiresIn: expiresIn
+            });
+        });
+    });
     // Gets activities from store (local history array for now)
     router.get('/v3?/directline/conversations/:conversationId/activities', function (req, res) {
         var watermark = req.query.watermark && req.query.watermark !== 'null' ? Number(req.query.watermark) : 0;
         var conversation = getConversation(req.params.conversationId, conversationInitRequired);
+        console.log('get /v3?/directline/conversations/:conversationId/activities  with conversationId: ' + req.params.conversationId);
         if (conversation) {
             // If the bot has pushed anything into the history array
             if (conversation.history.length > watermark) {
@@ -120,6 +121,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         // Make copy of activity. Add required fields
         var activity = createMessageActivity(incomingActivity, serviceUrl, req.params.conversationId);
         var conversation = getConversation(req.params.conversationId, conversationInitRequired);
+        console.log('post /v3?/directline/conversations/:conversationId/activities with conversationId: ' + req.params.conversationId);
         if (conversation) {
             conversation.history.push(activity);
             fetch(botUrl, {
@@ -146,6 +148,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         activity = req.body;
         activity.id = uuidv4();
         activity.from = { id: 'id', name: 'Bot' };
+        console.log('post /v3/conversations/:conversationId/activities  with conversationId: ' + req.params.conversationId);
         var conversation = getConversation(req.params.conversationId, conversationInitRequired);
         if (conversation) {
             conversation.history.push(activity);
@@ -157,6 +160,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         }
     });
     router.post('/v3/conversations/:conversationId/activities/:activityId', function (req, res) {
+        console.log('post /v3/conversations/:conversationId/activities/:activityId  with conversationId: ' + req.params.conversationId);
         var activity;
         activity = req.body;
         activity.id = uuidv4();
@@ -195,6 +199,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         setConversationData(req, res);
     });
     router.post('/v3/botstate/:channelId/conversations/:conversationId/users/:userId', function (req, res) {
+        console.log('post /v3/botstate/:channelId/conversations/:conversationId/users/:userId  with conversationId: ' + req.params.conversationId);
         setPrivateConversationData(req, res);
     });
     router["delete"]('/v3/botstate/:channelId/users/:userId', function (req, res) {
@@ -202,15 +207,40 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         deleteStateForUser(req, res);
     });
     router.post('/v3?/directline/tokens/generate', function (req, res) {
+        var conversationId = uuidv4().toString();
+        for (var key in conversations) {
+            delete conversations[key];
+        }
+        conversations[conversationId] = {
+            conversationId: conversationId,
+            history: []
+        };
+        console.log('Created conversation with conversationId on generate: ' + conversationId);
         console.log(('Called GET tokens generate'));
         res.status(200).send({
-            token: "offlineDirectLineFaketoken"
+            token: "offlineDirectLineFaketoken",
+            conversationId: conversationId,
+            expiresIn: expiresIn
         });
     });
     router.post('/v3?/directline/tokens/refresh', function (req, res) {
-        console.log(('Called GET tokens generate'));
+        var conversationId = uuidv4().toString();
+        if (Object.keys(conversations).length == 0) {
+            conversations[conversationId] = {
+                conversationId: conversationId,
+                history: []
+            };
+            console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
+        }
+        else {
+            var conversationId_1 = conversations[Object.keys(conversations)[0]].conversationId;
+            console.log('Refreshed conversation with conversationId on generate: ' + conversationId_1);
+        }
+        console.log(('Called GET tokens Refresh'));
         res.status(200).send({
-            token: "offlineDirectLineFaketoken"
+            token: "offlineDirectLineFaketoken",
+            conversationId: conversationId,
+            expiresIn: expiresIn
         });
     });
     return router;
@@ -289,12 +319,12 @@ var deleteStateForUser = function (req, res) {
 };
 // CLIENT ENDPOINT HELPERS
 var createMessageActivity = function (incomingActivity, serviceUrl, conversationId) {
-    return __assign(__assign({}, incomingActivity), { channelId: 'web', serviceUrl: serviceUrl, conversation: { id: conversationId }, id: uuidv4() });
+    return __assign(__assign({}, incomingActivity), { channelId: 'directline', serviceUrl: serviceUrl, conversation: { id: conversationId }, id: uuidv4(), recipient: { id: 'offline-directline', name: 'Offline Directline Server' } });
 };
 var createConversationUpdateActivity = function (serviceUrl, conversationId) {
     var activity = {
         type: 'conversationUpdate',
-        channelId: 'web',
+        channelId: 'directline',
         serviceUrl: serviceUrl,
         conversation: { id: conversationId },
         id: uuidv4(),
