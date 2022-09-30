@@ -17,11 +17,11 @@ var express = require("express");
 var fetch = require("isomorphic-fetch");
 var moment = require("moment");
 var uuidv4 = require("uuid/v4");
-;
 var expiresIn = 1800;
 var conversationsCleanupInterval = 10000;
 var conversations = {};
 var botDataStore = {};
+var bearerStirng = "Bearer ";
 var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     if (conversationInitRequired === void 0) { conversationInitRequired = true; }
     var router = express.Router();
@@ -45,17 +45,8 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     });
     // Creates a conversation
     router.post('/v3?/directline/conversations', function (req, res) {
-        //const conversationId: string = uuidv4().toString();
-        //conversations[conversationId] = {
-        //    conversationId,
-        //    history: [],
-        //};
-        // abo
-        var conversationId = conversations[Object.keys(conversations)[0]].conversationId;
-        //for (let key in conversations) {
-        //    let value = conversations[key];
-        //    if (value.token == req.params.token)
-        //}
+        var authToken = getConversationIdFromAuthToken(req.headers.authorization);
+        var conversationId = conversations[authToken].conversationId;
         console.log('post /v3?/directline/conversations Created conversation with conversationId: ' + conversationId);
         var activity = createConversationUpdateActivity(serviceUrl, conversationId);
         fetch(botUrl, {
@@ -67,7 +58,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         }).then(function (response) {
             res.status(response.status).send({
                 conversationId: conversationId,
-                expiresIn: expiresIn
+                expires_in: expiresIn
             });
         });
     });
@@ -85,7 +76,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         }).then(function (response) {
             res.status(response.status).send({
                 conversationId: conversationId,
-                expiresIn: expiresIn
+                expires_in: expiresIn
             });
         });
     });
@@ -208,19 +199,18 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     });
     router.post('/v3?/directline/tokens/generate', function (req, res) {
         var conversationId = uuidv4().toString();
-        for (var key in conversations) {
-            delete conversations[key];
-        }
+        var authThoken = conversationId;
         conversations[conversationId] = {
             conversationId: conversationId,
-            history: []
+            history: [],
+            token: authThoken
         };
         console.log('Created conversation with conversationId on generate: ' + conversationId);
         console.log(('Called GET tokens generate'));
         res.status(200).send({
-            token: "offlineDirectLineFaketoken",
+            token: authThoken,
             conversationId: conversationId,
-            expiresIn: expiresIn
+            expires_in: expiresIn
         });
     });
     router.post('/v3?/directline/tokens/refresh', function (req, res) {
@@ -228,19 +218,22 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         if (Object.keys(conversations).length == 0) {
             conversations[conversationId] = {
                 conversationId: conversationId,
-                history: []
+                history: [],
+                token: conversationId
             };
             console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
         }
         else {
-            var conversationId_1 = conversations[Object.keys(conversations)[0]].conversationId;
-            console.log('Refreshed conversation with conversationId on generate: ' + conversationId_1);
+            //try gets conversation using authToken
+            var authThoken = getConversationIdFromAuthToken(req.headers.authorization);
+            conversationId = conversations[authThoken].conversationId;
+            console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
         }
         console.log(('Called GET tokens Refresh'));
         res.status(200).send({
-            token: "offlineDirectLineFaketoken",
+            token: conversationId,
             conversationId: conversationId,
-            expiresIn: expiresIn
+            expires_in: expiresIn
         });
     });
     return router;
@@ -271,7 +264,8 @@ var getConversation = function (conversationId, conversationInitRequired) {
     if (!conversations[conversationId] && !conversationInitRequired) {
         conversations[conversationId] = {
             conversationId: conversationId,
-            history: []
+            history: [],
+            token: conversationId
         };
     }
     return conversations[conversationId];
@@ -348,3 +342,10 @@ var conversationsCleanup = function () {
         });
     }, conversationsCleanupInterval);
 };
+function getConversationIdFromAuthToken(authorizationToken) {
+    if (authorizationToken.includes(bearerStirng)) {
+        var convId = authorizationToken.replace(bearerStirng, "");
+        return convId;
+    }
+    return authorizationToken;
+}

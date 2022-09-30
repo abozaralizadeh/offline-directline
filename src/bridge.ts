@@ -3,17 +3,18 @@ import * as express from 'express';
 import * as fetch from 'isomorphic-fetch';
 import * as moment from 'moment';
 import * as uuidv4 from 'uuid/v4';
-
 import { IActivity, IBotData, IConversation, IConversationUpdateActivity, IMessageActivity } from './types';
 
-interface String {    
+interface String {
     endsWith(searchString: string, endPosition?: number): boolean;
-};
+}
 
 const expiresIn = 1800;
 const conversationsCleanupInterval = 10000;
 const conversations: { [key: string]: IConversation } = {};
 const botDataStore: { [key: string]: IBotData } = {};
+const bearerStirng = "Bearer ";
+const guidPrefixString = "ofdl-";
 
 export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
     const router = express.Router();
@@ -42,17 +43,9 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
     // Creates a conversation
     router.post('/v3?/directline/conversations', (req, res) => {
-        //const conversationId: string = uuidv4().toString();
-        //conversations[conversationId] = {
-        //    conversationId,
-        //    history: [],
-        //};
-        // abo
-        const conversationId = conversations[Object.keys(conversations)[0]].conversationId;
-        //for (let key in conversations) {
-        //    let value = conversations[key];
-        //    if (value.token == req.params.token)
-        //}
+        var authToken = getConversationIdFromAuthToken(req.headers.authorization); 
+        const conversationId = conversations[authToken].conversationId;
+       
         console.log('post /v3?/directline/conversations Created conversation with conversationId: ' + conversationId);
         
         const activity = createConversationUpdateActivity(serviceUrl, conversationId);
@@ -65,7 +58,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         }).then((response) => {
             res.status(response.status).send({
                 conversationId,
-                expiresIn,
+                expires_in: expiresIn,
             });
         });
     });
@@ -85,7 +78,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         }).then((response) => {
             res.status(response.status).send({
                 conversationId,
-                expiresIn,
+                expires_in: expiresIn,
             });
         });
     });
@@ -145,7 +138,6 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     router.get('/v3/directline/conversations/:conversationId/stream', (req, res) => { console.warn('/v3/directline/conversations/:conversationId/stream not implemented'); });
 
     // BOT CONVERSATION ENDPOINT
-
     router.post('/v3/conversations', (req, res) => { console.warn('/v3/conversations not implemented'); });
 
     router.post('/v3/conversations/:conversationId/activities', (req, res) => {
@@ -225,45 +217,51 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     });
 
     router.post('/v3?/directline/tokens/generate', (req, res) => {
-        const conversationId: string = uuidv4().toString();
-        for (var key in conversations) {
-            delete conversations[key];
-        }
+        const conversationId: string = guidPrefixString + uuidv4().toString();
+        const authThoken:string = conversationId;
+
         conversations[conversationId] = {
             conversationId,
             history: [],
+            token: authThoken
         };
+        
         console.log('Created conversation with conversationId on generate: ' + conversationId);
 
         console.log(('Called GET tokens generate'));
         res.status(200).send({
-            token: "offlineDirectLineFaketoken",
+            token: authThoken,
             conversationId,
-            expiresIn,
+            expires_in: expiresIn,
         });
     });
 
     router.post('/v3?/directline/tokens/refresh', (req, res) => {
         
-        const conversationId: string = uuidv4().toString();
+        var conversationId: string = guidPrefixString + uuidv4().toString();
+
         if (Object.keys(conversations).length == 0) {
             conversations[conversationId] = {
                 conversationId,
                 history: [],
+                token: conversationId
             };
             
             console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
         }
         else { 
-            const conversationId = conversations[Object.keys(conversations)[0]].conversationId;
+
+            //try gets conversation using authToken
+            var authThoken:string = getConversationIdFromAuthToken(req.headers.authorization);
+            conversationId = conversations[authThoken].conversationId;
             console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
         }
         
         console.log(('Called GET tokens Refresh'));
         res.status(200).send({
-            token: "offlineDirectLineFaketoken",
+            token: conversationId,
             conversationId,
-            expiresIn,
+            expires_in: expiresIn,
         });
     });
 
@@ -297,6 +295,7 @@ const getConversation = (conversationId: string, conversationInitRequired: boole
         conversations[conversationId] = {
             conversationId,
             history: [],
+            token:conversationId
         };
     }
     return conversations[conversationId];
@@ -386,3 +385,15 @@ const conversationsCleanup = () => {
         });
     }, conversationsCleanupInterval);
 };
+
+
+function getConversationIdFromAuthToken(authorizationToken: string): string {
+    if (authorizationToken.includes(bearerStirng)) {
+        var convId = authorizationToken.replace(bearerStirng, "");
+        return convId;
+    }
+
+    return authorizationToken;
+}
+
+
