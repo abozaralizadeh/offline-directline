@@ -4,12 +4,16 @@ import * as fetch from 'isomorphic-fetch';
 import * as moment from 'moment';
 import * as uuidv4 from 'uuid/v4';
 import { IActivity, IBotData, IConversation, IConversationUpdateActivity, IMessageActivity } from './types';
-import * as string from './stringextensionsmethos';
+
+interface String {
+    endsWith(searchString: string, endPosition?: number): boolean;
+}
 
 const expiresIn = 1800;
 const conversationsCleanupInterval = 10000;
 const conversations: { [key: string]: IConversation } = {};
 const botDataStore: { [key: string]: IBotData } = {};
+const bearerStirng = "Bearer ";
 
 export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
     const router = express.Router();
@@ -38,8 +42,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
     // Creates a conversation
     router.post('/v3?/directline/conversations', (req, res) => {
-
-        var authToken = req.headers.authorization.GetAuthToken(); //authToken and conversationId are the same
+        var authToken = getConversationIdFromAuthToken(req.headers.authorization); 
         const conversationId = conversations[authToken].conversationId;
        
         console.log('post /v3?/directline/conversations Created conversation with conversationId: ' + conversationId);
@@ -248,7 +251,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         else { 
 
             //try gets conversation using authToken
-            var authThoken:string = req.headers.authorization.GetAuthToken();
+            var authThoken:string = getConversationIdFromAuthToken(req.headers.authorization);
             conversationId = conversations[authThoken].conversationId;
             console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
         }
@@ -381,5 +384,15 @@ const conversationsCleanup = () => {
         });
     }, conversationsCleanupInterval);
 };
+
+
+function getConversationIdFromAuthToken(authorizationToken: string): string {
+    if (authorizationToken.includes(bearerStirng)) {
+        var convId = authorizationToken.replace(bearerStirng, "");
+        return convId;
+    }
+
+    return authorizationToken;
+}
 
 

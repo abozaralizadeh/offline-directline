@@ -21,6 +21,7 @@ var expiresIn = 1800;
 var conversationsCleanupInterval = 10000;
 var conversations = {};
 var botDataStore = {};
+var bearerStirng = "Bearer ";
 var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     if (conversationInitRequired === void 0) { conversationInitRequired = true; }
     var router = express.Router();
@@ -44,7 +45,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     });
     // Creates a conversation
     router.post('/v3?/directline/conversations', function (req, res) {
-        var authToken = req.headers.authorization.GetAuthToken(); //authToken and conversationId are the same
+        var authToken = getConversationIdFromAuthToken(req.headers.authorization);
         var conversationId = conversations[authToken].conversationId;
         console.log('post /v3?/directline/conversations Created conversation with conversationId: ' + conversationId);
         var activity = createConversationUpdateActivity(serviceUrl, conversationId);
@@ -224,7 +225,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         }
         else {
             //try gets conversation using authToken
-            var authThoken = req.headers.authorization.GetAuthToken();
+            var authThoken = getConversationIdFromAuthToken(req.headers.authorization);
             conversationId = conversations[authThoken].conversationId;
             console.log('Refreshed conversation with conversationId on generate: ' + conversationId);
         }
@@ -341,3 +342,10 @@ var conversationsCleanup = function () {
         });
     }, conversationsCleanupInterval);
 };
+function getConversationIdFromAuthToken(authorizationToken) {
+    if (authorizationToken.includes(bearerStirng)) {
+        var convId = authorizationToken.replace(bearerStirng, "");
+        return convId;
+    }
+    return authorizationToken;
+}
