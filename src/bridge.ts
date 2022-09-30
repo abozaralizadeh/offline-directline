@@ -14,6 +14,7 @@ const conversationsCleanupInterval = 10000;
 const conversations: { [key: string]: IConversation } = {};
 const botDataStore: { [key: string]: IBotData } = {};
 const bearerStirng = "Bearer ";
+const guidPrefixString = "ofdl-";
 
 export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRequired = true): express.Router => {
     const router = express.Router();
@@ -216,7 +217,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
     });
 
     router.post('/v3?/directline/tokens/generate', (req, res) => {
-        const conversationId: string = uuidv4().toString();
+        const conversationId: string = guidPrefixString + uuidv4().toString();
         const authThoken:string = conversationId;
 
         conversations[conversationId] = {
@@ -237,7 +238,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
     router.post('/v3?/directline/tokens/refresh', (req, res) => {
         
-        var conversationId: string = uuidv4().toString();
+        var conversationId: string = guidPrefixString + uuidv4().toString();
 
         if (Object.keys(conversations).length == 0) {
             conversations[conversationId] = {
