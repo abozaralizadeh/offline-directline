@@ -1,5 +1,4 @@
 offline-directline
-(https://www.npmjs.com/package/offline-directline)
 ================
 Unofficial package to emulate the bot framework connector locally. This package exposes three endpoints: 
 1. directline - For your messaging client to post and get message activities to
@@ -8,7 +7,7 @@ Unofficial package to emulate the bot framework connector locally. This package 
 
 See [Bot Framework API Reference](https://docs.microsoft.com/en-us/bot-framework/rest-api/bot-framework-rest-connector-api-reference) for API references. 
 
-NOTE: Not all routes (e.g. attachments) are fully implemented in this package. For now this connector functions as a message broker and state store. Further, this package currently facilitates a single conversation between a user and a bot.
+NOTE: Not all routes (e.g. attachments) are fully implemented in this package. For now this connector functions as a message broker and state store.
 
 ## Docker
 
@@ -18,18 +17,12 @@ docker pull abo0zar/offline_direct_line:latest
 ```sh
 docker run -d -p 3000:3000 -e ofdl_port=3000 -e offline_dl_bot="http://host.docker.internal:5019/api/messages" abo0zar/offline_direct_line:latest
 ```
-## Installation
-
-### NPM
-
-```sh
-npm install offline-directline
-```
 
 ## Usage
 
-Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to install and include this package in a node project and run it. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
+Using this package requires multiple moving pieces. For one you need to have a bot web service (hosted locally or elsewhere). Further, you'll need to run this docker container. Finally you'll need a client (we'll use webchat) to connect to our offline directline instance. 
 
+## If you want to build it yourself from the code
 ### Set up your direct line connector from the command line
 
 ```sh
