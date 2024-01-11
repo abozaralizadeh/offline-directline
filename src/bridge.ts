@@ -270,15 +270,45 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
 
 /**
  * @param app The express app where your offline-directline endpoint will live
- * @param port The port where your offline-directline will be hosted
+ * @param serviceUrl The port where your offline-directline will be hosted
  * @param botUrl The url of the bot (e.g. http://127.0.0.1:3978/api/messages)
  * @param conversationInitRequired Requires that a conversation is initialized before it is accessed, returning a 400
  * when not the case. If set to false, a new conversation reference is created on the fly. This is true by default.
  */
-export const initializeRoutes = (app: express.Express, port: number = 3000, botUrl: string, conversationInitRequired = true) => {
+export const initializeRoutes = (app: express.Express, serviceUrl: string = 'http://127.0.0.1:3000', botUrl: string, conversationInitRequired = true) => {
     conversationsCleanup();
 
-    const directLineEndpoint = `http://127.0.0.1:${port}`;
+    var protocol = "http"
+    if (serviceUrl.startsWith("http://"))
+        serviceUrl = serviceUrl.replace("http://", "")
+    else if (serviceUrl.startsWith("https://"))
+    {
+        protocol = "https"
+        serviceUrl = serviceUrl.replace("https://", "")
+    }
+
+    var up = serviceUrl.split(':')
+
+    var base = "127.0.0.1"
+    var port = 3000
+
+    if (up.length == 2)
+    { 
+        base = up[0]
+        port = +up[1] 
+    }
+    else {
+        if (isNaN(+up[0]))
+        { 
+            base = up[0]
+            port = 80
+        }
+        else { 
+            port = +up[0]
+        }
+    }
+
+    const directLineEndpoint = `${protocol}://${base}:${port}`;
     const router = getRouter(directLineEndpoint, botUrl, conversationInitRequired);
 
     app.use(router);

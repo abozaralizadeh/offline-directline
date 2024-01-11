@@ -10,7 +10,7 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.initializeRoutes = exports.getRouter = void 0;
 var bodyParser = require("body-parser");
 var express = require("express");
@@ -22,6 +22,7 @@ var conversationsCleanupInterval = 10000;
 var conversations = {};
 var botDataStore = {};
 var bearerStirng = "Bearer ";
+var guidPrefixString = "ofdl-";
 var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
     if (conversationInitRequired === void 0) { conversationInitRequired = true; }
     var router = express.Router();
@@ -53,12 +54,12 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
             method: 'POST',
             body: JSON.stringify(activity),
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         }).then(function (response) {
             res.status(response.status).send({
                 conversationId: conversationId,
-                expires_in: expiresIn
+                expires_in: expiresIn,
             });
         });
     });
@@ -71,12 +72,12 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
             method: 'POST',
             body: JSON.stringify(activity),
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+            },
         }).then(function (response) {
             res.status(response.status).send({
                 conversationId: conversationId,
-                expires_in: expiresIn
+                expires_in: expiresIn,
             });
         });
     });
@@ -91,13 +92,13 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
                 var activities = conversation.history.slice(watermark);
                 res.status(200).json({
                     activities: activities,
-                    watermark: watermark + activities.length
+                    watermark: watermark + activities.length,
                 });
             }
             else {
                 res.status(200).send({
                     activities: [],
-                    watermark: watermark
+                    watermark: watermark,
                 });
             }
         }
@@ -119,8 +120,8 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
                 method: 'POST',
                 body: JSON.stringify(activity),
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                },
             }).then(function (response) {
                 res.status(response.status).json({ id: activity.id });
             });
@@ -193,12 +194,12 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         console.log('post /v3/botstate/:channelId/conversations/:conversationId/users/:userId  with conversationId: ' + req.params.conversationId);
         setPrivateConversationData(req, res);
     });
-    router["delete"]('/v3/botstate/:channelId/users/:userId', function (req, res) {
+    router.delete('/v3/botstate/:channelId/users/:userId', function (req, res) {
         console.log('Called DELETE deleteStateForUser');
         deleteStateForUser(req, res);
     });
     router.post('/v3?/directline/tokens/generate', function (req, res) {
-        var conversationId = uuidv4().toString();
+        var conversationId = guidPrefixString + uuidv4().toString();
         var authThoken = conversationId;
         conversations[conversationId] = {
             conversationId: conversationId,
@@ -210,11 +211,11 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         res.status(200).send({
             token: authThoken,
             conversationId: conversationId,
-            expires_in: expiresIn
+            expires_in: expiresIn,
         });
     });
     router.post('/v3?/directline/tokens/refresh', function (req, res) {
-        var conversationId = uuidv4().toString();
+        var conversationId = guidPrefixString + uuidv4().toString();
         if (Object.keys(conversations).length == 0) {
             conversations[conversationId] = {
                 conversationId: conversationId,
@@ -233,7 +234,7 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
         res.status(200).send({
             token: conversationId,
             conversationId: conversationId,
-            expires_in: expiresIn
+            expires_in: expiresIn,
         });
     });
     return router;
@@ -241,16 +242,39 @@ var getRouter = function (serviceUrl, botUrl, conversationInitRequired) {
 exports.getRouter = getRouter;
 /**
  * @param app The express app where your offline-directline endpoint will live
- * @param port The port where your offline-directline will be hosted
+ * @param serviceUrl The port where your offline-directline will be hosted
  * @param botUrl The url of the bot (e.g. http://127.0.0.1:3978/api/messages)
  * @param conversationInitRequired Requires that a conversation is initialized before it is accessed, returning a 400
  * when not the case. If set to false, a new conversation reference is created on the fly. This is true by default.
  */
-var initializeRoutes = function (app, port, botUrl, conversationInitRequired) {
-    if (port === void 0) { port = 3000; }
+var initializeRoutes = function (app, serviceUrl, botUrl, conversationInitRequired) {
+    if (serviceUrl === void 0) { serviceUrl = 'http://127.0.0.1:3000'; }
     if (conversationInitRequired === void 0) { conversationInitRequired = true; }
     conversationsCleanup();
-    var directLineEndpoint = "http://127.0.0.1:".concat(port);
+    var protocol = "http";
+    if (serviceUrl.startsWith("http://"))
+        serviceUrl = serviceUrl.replace("http://", "");
+    else if (serviceUrl.startsWith("https://")) {
+        protocol = "https";
+        serviceUrl = serviceUrl.replace("https://", "");
+    }
+    var up = serviceUrl.split(':');
+    var base = "127.0.0.1";
+    var port = 3000;
+    if (up.length == 2) {
+        base = up[0];
+        port = +up[1];
+    }
+    else {
+        if (isNaN(+up[0])) {
+            base = up[0];
+            port = 80;
+        }
+        else {
+            port = +up[0];
+        }
+    }
+    var directLineEndpoint = "".concat(protocol, "://").concat(base, ":").concat(port);
     var router = (0, exports.getRouter)(directLineEndpoint, botUrl, conversationInitRequired);
     app.use(router);
     app.listen(port, function () {
@@ -277,7 +301,7 @@ var setBotData = function (channelId, conversationId, userId, incomingData) {
     var key = getBotDataKey(channelId, conversationId, userId);
     var newData = {
         eTag: new Date().getTime().toString(),
-        data: incomingData.data
+        data: incomingData.data,
     };
     if (incomingData) {
         botDataStore[key] = newData;
@@ -324,7 +348,7 @@ var createConversationUpdateActivity = function (serviceUrl, conversationId) {
         id: uuidv4(),
         membersAdded: [],
         membersRemoved: [],
-        from: { id: 'offline-directline', name: 'Offline Directline Server' }
+        from: { id: 'offline-directline', name: 'Offline Directline Server' },
     };
     return activity;
 };

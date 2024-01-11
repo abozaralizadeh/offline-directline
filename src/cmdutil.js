@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var program = require("commander");
 var express = require("express");
 var directline = require("./bridge");
